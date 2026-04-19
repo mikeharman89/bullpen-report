@@ -143,6 +143,7 @@
           <option value="perf_score">Sort: Perf Score</option>
           <option value="era">Sort: ERA</option>
           <option value="whip">Sort: WHIP</option>
+          <option value="fip">Sort: FIP</option>
           <option value="k_per_9">Sort: K/9</option>
           <option value="ip">Sort: IP</option>
         </select>
@@ -150,7 +151,7 @@
       <div class="table-wrap"><table>
         <thead><tr>
           <th class="rank">#</th><th>Team</th><th>Score</th>
-          <th class="num">ERA</th><th class="num">WHIP</th><th class="num">K/9</th>
+          <th class="num">ERA</th><th class="num">WHIP</th><th class="num">FIP</th><th class="num">K/9</th>
           <th class="num">IP</th><th class="num">Runs</th><th>Tier</th><th class="num">Fatigue</th>
         </tr></thead>
         <tbody id="perfTbody"></tbody>
@@ -196,6 +197,7 @@
     <select id="armSort" onchange="renderArmTable()">
       <option value="era">Sort: ERA</option>
       <option value="whip">Sort: WHIP</option>
+      <option value="fip">Sort: FIP</option>
       <option value="total_pitches">Sort: Pitches</option>
       <option value="games_appeared">Sort: Games</option>
       <option value="days_rest">Sort: Rest Days</option>
@@ -209,7 +211,7 @@
     <thead><tr>
       <th>Pitcher</th><th class="num">G</th><th class="num">IP</th>
       <th class="num">Runs</th><th class="num">Pitches</th><th class="num">K/9</th>
-      <th class="num">ERA</th><th class="num">WHIP</th><th>Status</th>
+      <th class="num">ERA</th><th class="num">WHIP</th><th class="num">FIP</th><th>Status</th>
     </tr></thead>
     <tbody id="armTbody"></tbody>
   </table></div>
@@ -232,6 +234,7 @@ function perfCol(s){ return s>=75?'#4db87a':s>=50?'#8cc450':s>=25?'#c49840':'#c4
 function fatCol(s){  return s>=75?'#c45050':s>=50?'#c47840':s>=25?'#8cc450':'#4db87a'; }
 function eraClass(v){  return v<=3?'c-great':v<=5?'c-good':v<=8?'c-warn':'c-bad'; }
 function whipClass(v){ return v<=1.0?'c-great':v<=1.3?'c-good':v<=1.8?'c-warn':'c-bad'; }
+function fipClass(v){  return v<=3.0?'c-great':v<=4.0?'c-good':v<=5.0?'c-warn':'c-bad'; }
 function sClass(d){ return d<=1?'s-high':d<=3?'s-mod':d<=5?'s-rest':'s-fresh'; }
 function sLabel(d){ return d<=1?'High risk':d<=3?'Moderate':d<=5?'Rested':'Fresh'; }
 
@@ -300,6 +303,7 @@ function renderPerfTable(){
       <td>${scoreBar(t.perf_score,perfCol)}</td>
       <td class="num ${eraClass(t.era)}">${n(t.era)}</td>
       <td class="num ${whipClass(t.whip)}">${n(t.whip)}</td>
+      <td class="num ${fipClass(t.fip||0)}">${n(t.fip)}</td>
       <td class="num">${n(t.k_per_9,1)}</td>
       <td class="num">${n(t.ip,1)}</td>
       <td class="num">${Math.round(t.runs_allowed)}</td>
@@ -352,8 +356,8 @@ function renderTeamDetail(){
       <div class="metric-sub">${perfPill(t.perf_tier)}</div>
     </div>
     <div class="metric">
-      <div class="metric-label">ERA / WHIP</div>
-      <div class="metric-value">${n(t.era)}<span style="color:var(--faint);font-size:18px;margin:0 5px">/</span>${n(t.whip)}</div>
+      <div class="metric-label">ERA / WHIP / FIP</div>
+      <div class="metric-value" style="font-size:22px">${n(t.era)}<span style="color:var(--faint);font-size:16px;margin:0 4px">/</span>${n(t.whip)}<span style="color:var(--faint);font-size:16px;margin:0 4px">/</span>${n(t.fip)}</div>
       <div class="metric-sub">${n(t.ip,1)} IP · ${Math.round(t.runs_allowed)} runs allowed</div>
     </div>
     <div class="metric">
@@ -390,6 +394,7 @@ function renderArmTable(){
       <td class="num">${n(a.k_per_9,1)}</td>
       <td class="num ${eraClass(a.era||0)}">${n(a.era)}</td>
       <td class="num ${whipClass(a.whip||0)}">${n(a.whip)}</td>
+      <td class="num ${fipClass(a.fip||0)}">${n(a.fip)}</td>
       <td><span class="${sClass(a.days_rest||0)}">${sLabel(a.days_rest||0)}</span></td>
     </tr>`).join('');
 }
