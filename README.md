@@ -1,4 +1,4 @@
-# Bullpen Report
+# [Bullpen Report](https://mikeharman89.github.io/bullpen-report/)
 
 A weekly MLB bullpen tracking system that pulls Statcast data, calculates fatigue and performance metrics, generates social media graphics, and publishes a live web dashboard — all automated with a single script.
 
