@@ -116,6 +116,9 @@
 
   #loading { text-align:center; padding:80px 28px; color:var(--muted); font-size:14px; }
   #error   { text-align:center; padding:80px 28px; color:var(--red); font-size:14px; display:none; }
+  .trend-up   { color: #4db87a; font-size:11px; font-weight:600; margin-left:4px; }
+  .trend-down { color: #c45050; font-size:11px; font-weight:600; margin-left:4px; }
+  .trend-flat { color: var(--muted); font-size:11px; margin-left:4px; }
 </style>
 </head>
 <body>
@@ -123,6 +126,9 @@
 <nav>
   <div class="nav-brand">Bullpen Tracker</div>
   <div id="navWeek" class="nav-week"></div>
+  <select id="weekSelect" onchange="onWeekChange()" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--card);color:var(--soft);cursor:pointer;font-family:'Barlow',sans-serif;outline:none;">
+    <option value="latest">This week</option>
+  </select>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('league',this)">League</button>
     <button class="nav-tab"        onclick="showPage('teams', this)">Teams</button>
@@ -221,7 +227,7 @@
 let TEAMS=[], ARMS=[];
 
 const ESPN_IDS={
-  ARI:29,AZ:29,ATL:15,BAL:1,BOS:2,CHC:16,CWS:4,CIN:17,CLE:5,
+  ARI:29,ATL:15,BAL:1,BOS:2,CHC:16,CWS:4,CIN:17,CLE:5,
   COL:27,DET:6,HOU:18,KC:7,LAA:3,LAD:19,MIA:28,MIL:8,
   MIN:9,NYM:21,NYY:10,ATH:11,OAK:11,PHI:22,PIT:23,SD:25,
   SF:26,SEA:12,STL:24,TB:30,TEX:13,TOR:14,WSH:20
@@ -300,7 +306,7 @@ function renderPerfTable(){
     <tr>
       <td class="rank ${i<3?'top':''}">${i+1}</td>
       <td>${teamCell(t.fielding_team)}</td>
-      <td>${scoreBar(t.perf_score,perfCol)}</td>
+      <td>${scoreBar(t.perf_score,perfCol)}${trend(t,prevTeam(t.fielding_team),'perf_score')}</td>
       <td class="num ${eraClass(t.era)}">${n(t.era)}</td>
       <td class="num ${whipClass(t.whip)}">${n(t.whip)}</td>
       <td class="num ${fipClass(t.fip||0)}">${n(t.fip)}</td>
@@ -410,28 +416,91 @@ function setWeekLabel(){
   document.getElementById('navWeek').textContent=`Week of ${f(lastMonday)} – ${f(lastSunday)}, ${lastSunday.getFullYear()}`;
 }
 
-async function boot(){
-  setWeekLabel();
-  try {
-    const [td,ad]=await Promise.all([
-      fetch('data/team_data.json').then(r=>{if(!r.ok)throw new Error();return r.json();}),
-      fetch('data/arm_data.json').then(r=>{if(!r.ok)throw new Error();return r.json();}),
-    ]);
-    TEAMS=td; ARMS=ad;
+let PREV_TEAMS=[];
+function trend(curr,prev,field,lowerIsBetter=false){
+  if(!prev) return '';
+  const diff=curr[field]-prev[field];
+  if(Math.abs(diff)<0.1) return '<span class="trend-flat">—</span>';
+  const better=lowerIsBetter?diff<0:diff>0;
+  return better
+    ?`<span class="trend-up">▲ ${Math.abs(diff).toFixed(1)}</span>`
+    :`<span class="trend-down">▼ ${Math.abs(diff).toFixed(1)}</span>`;
+}
+function prevTeam(code){ return PREV_TEAMS.find(t=>t.fielding_team===code); }
+
+async function loadWeeksIndex(){
+  try{
+    const idx=await fetch('data/weeks_index.json').then(r=>r.ok?r.json():[]);
+    const sel=document.getElementById('weekSelect');
+    [...idx].reverse().forEach(w=>{
+      const o=document.createElement('option');
+      o.value=w.file; o.textContent=w.label; sel.appendChild(o);
+    });
+    return idx;
+  }catch(e){ return []; }
+}
+
+async function loadWeek(file){
+  if(file==='latest'){
+    const data=await fetch('data/latest.json').then(r=>{if(!r.ok)throw new Error();return r.json();});
+    TEAMS=data.teams||data; ARMS=data.arms||[];
+    return data.meta||null;
+  } else {
+    const data=await fetch(`data/${file}`).then(r=>{if(!r.ok)throw new Error();return r.json();});
+    TEAMS=data.teams||[]; ARMS=data.arms||[];
+    return data.meta||null;
+  }
+}
+
+async function loadPrevWeek(index,currentFile){
+  if(!index||index.length<2) return;
+  const idx=index.findIndex(w=>w.file===currentFile);
+  if(idx<=0){ PREV_TEAMS=[]; return; }
+  try{
+    const data=await fetch(`data/${index[idx-1].file}`).then(r=>r.ok?r.json():null);
+    PREV_TEAMS=data?(data.teams||data):[];
+  }catch(e){ PREV_TEAMS=[]; }
+}
+
+async function onWeekChange(){
+  const file=document.getElementById('weekSelect').value;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('page-league').classList.remove('active');
+  try{
+    const idx=await fetch('data/weeks_index.json').then(r=>r.ok?r.json():[]).catch(()=>[]);
+    const meta=await loadWeek(file);
+    await loadPrevWeek(idx,file);
+    if(meta) document.getElementById('navWeek').textContent=`Week of ${meta.label||''}`;
     document.getElementById('loading').style.display='none';
     document.getElementById('page-league').classList.add('active');
-    renderLeagueMetrics();
-    renderPerfTable();
-    renderFatTable();
+    renderLeagueMetrics(); renderPerfTable(); renderFatTable();
+    renderRecordTable(); renderTeamDetail();
+  }catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error').style.display='block';
+  }
+}
+
+async function boot(){
+  setWeekLabel();
+  const idx=await loadWeeksIndex();
+  try{
+    const meta=await loadWeek('latest');
+    if(idx.length>=2) await loadPrevWeek(idx,idx[idx.length-1]?.file);
+    if(meta) document.getElementById('navWeek').textContent=`Week of ${meta.label||''}`;
+    document.getElementById('loading').style.display='none';
+    document.getElementById('page-league').classList.add('active');
+    renderLeagueMetrics(); renderPerfTable(); renderFatTable();
     renderRecordTable();
     const sel=document.getElementById('teamSelect');
-    [...TEAMS].sort((a,b)=>a.fielding_team.localeCompare(b.fielding_team)).forEach(t=>{
-      const o=document.createElement('option');
-      o.value=t.fielding_team; o.textContent=t.fielding_team;
-      sel.appendChild(o);
-    });
+    if(sel.options.length<=1){
+      [...TEAMS].sort((a,b)=>a.fielding_team.localeCompare(b.fielding_team)).forEach(t=>{
+        const o=document.createElement('option');
+        o.value=t.fielding_team; o.textContent=t.fielding_team; sel.appendChild(o);
+      });
+    }
     renderTeamDetail();
-  } catch(e){
+  }catch(e){
     document.getElementById('loading').style.display='none';
     document.getElementById('error').style.display='block';
   }
