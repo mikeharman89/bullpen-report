@@ -4,5 +4,11 @@
     "week_end": "2026-04-26",
     "label": "Apr 20 \u2013 Apr 26, 2026",
     "file": "weeks/2026-04-20.json"
+  },
+  {
+    "week_start": "2026-04-27",
+    "week_end": "2026-05-03",
+    "label": "Apr 27 \u2013 May 03, 2026",
+    "file": "weeks/2026-04-27.json"
   }
 ]
