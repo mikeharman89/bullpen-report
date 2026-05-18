@@ -16,5 +16,11 @@
     "week_end": "2026-05-10",
     "label": "May 04 \u2013 May 10, 2026",
     "file": "weeks/2026-05-04.json"
+  },
+  {
+    "week_start": "2026-05-11",
+    "week_end": "2026-05-17",
+    "label": "May 11 \u2013 May 17, 2026",
+    "file": "weeks/2026-05-11.json"
   }
 ]
