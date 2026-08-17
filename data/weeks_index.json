@@ -94,5 +94,11 @@
     "week_end": "2026-08-09",
     "label": "Aug 03 \u2013 Aug 09, 2026",
     "file": "weeks/2026-08-03.json"
+  },
+  {
+    "week_start": "2026-08-10",
+    "week_end": "2026-08-16",
+    "label": "Aug 10 \u2013 Aug 16, 2026",
+    "file": "weeks/2026-08-10.json"
   }
 ]
